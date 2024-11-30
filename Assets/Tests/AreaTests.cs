@@ -1,7 +1,7 @@
 using System;
 using NUnit.Framework;
 
-public class AreaTests
+internal class AreaTests
 {
     [Test]
     public void Instantiate()
@@ -33,7 +33,7 @@ public class AreaTests
 
         //Act
 
-        area.AddResource(1);
+        area.AddResource(1, out int change);
 
         //Assert
 
@@ -48,7 +48,7 @@ public class AreaTests
 
         //Act
 
-        area.AddResource(12);
+        area.AddResource(12, out int change);
 
         //Assert
 
@@ -81,7 +81,7 @@ public class AreaTests
         Area area = new(maxCount);
 
         //Act
-        area.AddResource(count);
+        area.AddResource(count, out int change);
 
         bool canAdd = area.CanRemoveResources(count);
 
@@ -99,7 +99,7 @@ public class AreaTests
 
         //Act
 
-        area.AddResource(count);
+        area.AddResource(count, out int change);
         int takedResources = area.RemoveResources(demandedResources);
 
         //Assert

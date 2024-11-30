@@ -1,43 +1,42 @@
 using System;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("Tests")]
 public class Converter
 {
     private Area _inResources;
     private Area _outRecources;
-    private int _resourcesSupplied = 3;
-    private int _resourcesDemanded = 5;
-    private float _timeConvertResources = 3f;
     private float _currentConvertingTime;
     private bool _isConverting;
+    private int _resourcesSupplied;
+    private int _resourcesDemanded;
+    private float _timeConvertResources;
 
     public bool IsActive { get; private set; }
     public int ConversionResourcesCount => _inResources.Count;
     public int ConvertedResourcesCount => _outRecources.Count;
 
-    public Converter(int suppliedCount, int demandedCount)
+    public Converter(int suppliedCount, int demandedCount, int resourcesSupplied, int resourcesDemanded,
+        float timeConvertResources)
     {
+        _timeConvertResources = timeConvertResources;
+        _resourcesDemanded = resourcesDemanded;
+        _resourcesSupplied = resourcesSupplied;
         _inResources = new(suppliedCount);
         _outRecources = new(demandedCount);
     }
 
-    public bool CanTakeResources()
+    public void PutConversionResources(int count, out int overflow)
     {
-        return _inResources.CanRemoveResources(_resourcesDemanded);
-    }
+        if(count <= 0)
+            throw new ArgumentException("count <= 0");
 
-    public void PutConversionResources(int count)
-    {
-        _inResources.AddResource(count);
+        _inResources.AddResource(count, out overflow);
     }
 
     public bool HasFreeSpace()
     {
         return _inResources.Count < _inResources.MaxCount;
-    }
-
-    public void TakeResourcesToConvert()
-    {
-        _inResources.RemoveResources(_resourcesDemanded);
     }
 
     public void SetActive(bool state)
@@ -48,101 +47,77 @@ public class Converter
         IsActive = state;
     }
 
+    private bool CanOutputResources()
+    {
+        return _outRecources.CanAddResources();
+    }
+
+    private bool CanStartConverting()
+    {
+        return CanTakeResources() && CanOutputResources();
+    }
+
     private void TurnOff()
     {
         if (_isConverting)
         {
             _currentConvertingTime = 0;
             _isConverting = false;
-            _inResources.AddResource(_resourcesDemanded);
+            _inResources.AddResource(_resourcesDemanded, out int change);
         }
     }
 
     public void Update(float deltaTime)
     {
+        if (deltaTime < 0)
+            throw new ArgumentException("deltaTime < 0");
+
         if (!IsActive)
             return;
 
+        if (!_isConverting)
+            BeginCycle();
+
         if (_isConverting)
+            UpdateCycle(deltaTime);
+    }
+
+    private void BeginCycle()
+    {
+        if (CanStartConverting())
         {
-            _currentConvertingTime += deltaTime;
+            _isConverting = true;
+            TakeResourcesToConvert();
         }
         else
         {
-            if (CanTakeResources())
-            {
-                _isConverting = true;
-                TakeResourcesToConvert();
-            }
-            else
-            {
-                IsActive = false;
-            }
+            IsActive = false;
         }
+    }
+
+    private void UpdateCycle(float deltaTime)
+    {
+        _currentConvertingTime += deltaTime;
 
         if (_currentConvertingTime >= _timeConvertResources)
         {
             _isConverting = false;
             _currentConvertingTime = 0;
 
-            _outRecources.AddResource(_resourcesSupplied);
+            _outRecources.AddResource(_resourcesSupplied, out int change);
 
             if (!_outRecources.CanAddResources(_resourcesSupplied))
                 IsActive = false;
         }
     }
-}
 
-public class Area
-{
-    public int Count { get; private set; }
-    public int MaxCount { get; private set; }
-
-    public Area(int maxCount)
+    internal bool CanTakeResources()
     {
-        if (maxCount <= 0)
-        {
-            throw new ArgumentException();
-        }
-
-        MaxCount = maxCount;
+        return _inResources.CanRemoveResources(_resourcesDemanded);
     }
 
-    public Area(int maxCount, int count)
+    internal void TakeResourcesToConvert()
     {
-        if (maxCount <= 0 || count < 0)
-        {
-            throw new ArgumentException();
-        }
-
-        Count = count;
-        MaxCount = maxCount;
-    }
-
-    public void AddResource(int count)
-    {
-        Count = Math.Min(Count += count, MaxCount);
-    }
-
-    public bool CanAddResources(int count)
-    {
-        return Count + count <= MaxCount;
-    }
-
-    public bool CanRemoveResources(int count)
-    {
-        return Count >= count;
-    }
-
-    public int RemoveResources(int count)
-    {
-        if (count <= 0)
-        {
-            throw new ArgumentException();
-        }
-
-        int removeResources = Math.Min(Count, count);
-        Count -= removeResources;
-        return removeResources;
+        _inResources.RemoveResources(_resourcesDemanded);
     }
 }

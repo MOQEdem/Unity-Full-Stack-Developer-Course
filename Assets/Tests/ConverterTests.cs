@@ -1,3 +1,5 @@
+using System;
+using System.Runtime.CompilerServices;
 using NUnit.Framework;
 
 public class ConverterTests
@@ -6,7 +8,7 @@ public class ConverterTests
     public void Instantiate()
     {
         //Arrange
-        Converter converter = new(3, 3);
+        Converter converter = new(3, 3, 3, 5, 3);
 
         //Assert
         Assert.IsNotNull(converter);
@@ -16,10 +18,10 @@ public class ConverterTests
     public void CanPutResources()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(9);
+        converter.PutConversionResources(9, out int overflow);
         bool hasFreeSpace = converter.HasFreeSpace();
 
         //Assert
@@ -30,10 +32,10 @@ public class ConverterTests
     public void CanTakeResources()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(10);
+        converter.PutConversionResources(10, out int overflow);
         bool canTake = converter.CanTakeResources();
 
         //Assert
@@ -44,10 +46,10 @@ public class ConverterTests
     public void PutResourcesSuccessful()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(5);
+        converter.PutConversionResources(5, out int overflow);
 
         //Assert
         Assert.AreEqual(converter.ConversionResourcesCount, 5);
@@ -57,10 +59,10 @@ public class ConverterTests
     public void TakeResourcesSuccessful()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(10);
+        converter.PutConversionResources(10, out int overflow);
         converter.TakeResourcesToConvert();
 
         //Assert
@@ -71,10 +73,10 @@ public class ConverterTests
     public void TurnOffSuccessful()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(10);
+        converter.PutConversionResources(10, out int overflow);
         converter.SetActive(true);
 
         for (int i = 0; i < 2; i++)
@@ -99,10 +101,10 @@ public class ConverterTests
     public void ConvertResourcesSuccessful()
     {
         // Arrange
-        Converter converter = new(10, 10);
+        Converter converter = new(10, 10,3,5,3);
 
         //Act
-        converter.PutConversionResources(10);
+        converter.PutConversionResources(10, out int overflow);
         converter.SetActive(true);
 
         for (int i = 0; i < 12; i++)
@@ -114,5 +116,30 @@ public class ConverterTests
         Assert.AreEqual(converter.ConvertedResourcesCount, 6);
         Assert.AreEqual(converter.ConversionResourcesCount, 0);
         Assert.IsFalse(converter.IsActive);
+    }
+
+    [Test]
+    public void WhenUpdateWithInvaliDeltaTimeThenException()
+    {
+        //Assert
+
+        Assert.Catch<ArgumentException>(() =>
+        {
+          Converter converter = new(10, 10, 3, 5, 3);  
+          converter.Update(-1f);
+        });
+    }
+
+    [TestCase(0)]
+    [TestCase(-2)]
+    public void WhenPutConversationResourcesWithInvalidArgumentsThenException(int count)
+    {
+        //Assert
+
+        Assert.Catch<ArgumentException>(() =>
+        {
+            Converter converter = new(10, 10, 3, 5, 3);  
+            converter.PutConversionResources(count, out int overflow);
+        });
     }
 }
