@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Inventories
@@ -8,12 +9,17 @@ namespace Inventories
     public sealed class Inventory : IEnumerable<Item>
     {
         public event Action<Item, Vector2Int> OnAdded;
+
         public event Action<Item, Vector2Int> OnRemoved;
+
         public event Action<Item, Vector2Int> OnMoved;
+
         public event Action OnCleared;
 
         public int Width => _width;
+
         public int Height => _height;
+
         public int Count => _count;
 
         private int _width;
@@ -379,9 +385,7 @@ namespace Inventories
             if (Count == 0)
                 return;
 
-            for (int x = 0; x < _width; x++)
-            for (int y = 0; y < _height; y++)
-                _grid[x, y] = null;
+            Array.Clear(_grid, 0, _grid.Length);
 
             _items.Clear();
             _count = 0;
@@ -460,9 +464,7 @@ namespace Inventories
             _grid = new Item[_width, _height];
             _count = 0;
 
-            List<Item> sortedItems = new List<Item>(_items.Keys);
-            sortedItems.Sort((a, b) => (b.Size.x * b.Size.y).CompareTo(a.Size.x * a.Size.y));
-
+            var sortedItems = _items.Keys.OrderByDescending(item => item.Size.x * item.Size.y).ToList();
             _items.Clear();
 
             foreach (var item in sortedItems)
@@ -519,19 +521,12 @@ namespace Inventories
         /// </summary>
         public void CopyTo(in Item[,] matrix)
         {
-            for (int x = 0; x < _width; x++)
-            {
-                for (int y = 0; y < _height; y++)
-                {
-                    matrix[x, y] = _grid[x, y];
-                }
-            }
+            Array.Copy(_grid, matrix, _grid.Length);
         }
 
         public IEnumerator<Item> GetEnumerator()
         {
-            foreach (var item in _items.Keys)
-                yield return item;
+            return _items.Keys.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
